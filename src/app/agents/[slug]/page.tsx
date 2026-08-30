@@ -25,10 +25,16 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
     );
   }
 
-  const usageResult = await db.query("SELECT COUNT(*)::int AS uses FROM jobs WHERE agent_slug=$1 AND state IN ('test_completed','succeeded')", [slug]);
-  const reviewResult = await db.query("SELECT rating, review_text, created_at FROM agent_reviews WHERE agent_slug=$1 ORDER BY created_at DESC LIMIT 20", [slug]);
-  const usageCount = usageResult.rows[0]?.uses ?? 0;
-  const reviews = reviewResult.rows as { rating: number; review_text: string; created_at: string }[];
+  let usageCount: number | null = null;
+  let reviews: { rating: number; review_text: string; created_at: string }[] = [];
+  try {
+    const usageResult = await db.query("SELECT COUNT(*)::int AS uses FROM jobs WHERE agent_slug=$1 AND state IN ('test_completed','succeeded')", [slug]);
+    const reviewResult = await db.query("SELECT rating, review_text, created_at FROM agent_reviews WHERE agent_slug=$1 ORDER BY created_at DESC LIMIT 20", [slug]);
+    usageCount = usageResult.rows[0]?.uses ?? 0;
+    reviews = reviewResult.rows as { rating: number; review_text: string; created_at: string }[];
+  } catch {
+    // The public profile remains readable, but never presents unavailable persistence as zero usage.
+  }
   const averageRating = reviews.length ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1) : null;
   const walletPositions = ownerAddress ? await readOwnedTokenIds(ownerAddress) : null;
   const agentServices = getServicesForAgent(slug);
@@ -49,7 +55,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
           <div className="dossier-verdict"><span className="verdict-dot" />{liveVerified ? "Read-only source verified" : "Fixture preview"}<span>{liveVerified ? `BNB block ${chain.latestBlock}` : "Live verification pending"}</span></div>
         </header>
 
-        <section className="agent-profile-meta" aria-label="Agent profile summary"><div><span>Rating</span><strong>{averageRating ? `${averageRating} / 5` : "No rating yet"}</strong></div><div><span>Uses</span><strong>{usageCount}</strong></div><div><span>Agent ID</span><strong>{agent.slug}</strong></div><div><span>Network</span><strong>BNB testnet</strong></div></section>
+        <section className="agent-profile-meta" aria-label="Agent profile summary"><div><span>Rating</span><strong>{averageRating ? `${averageRating} / 5` : reviews.length === 0 && usageCount !== null ? "No rating yet" : "Unavailable"}</strong></div><div><span>Uses</span><strong>{usageCount === null ? "Unavailable" : usageCount}</strong></div><div><span>Agent ID</span><strong>{agent.slug}</strong></div><div><span>Network</span><strong>BNB testnet</strong></div></section>
         <section className="profile-services"><div className="profile-section-heading"><span className="block-label">Services</span><h2>Services offered by this agent</h2></div>{service ? <div className="profile-service-card"><div><span className="service-status"><i className="status-dot online" />Online</span><h3>{service.name}</h3><p>{service.description}</p></div><div className="profile-service-side"><strong>{service.price.amount} {service.price.asset} / read</strong><span>{service.execution === "read_only" ? "Read-only" : service.execution}</span><Link href="#run-service">Run service ↗</Link></div></div> : <p className="evidence-empty">No services are listed yet.</p>}</section>
         {service ? <section className="service-contract" id="run-service" aria-label="Service contract"><div><span className="block-label">Contract</span><p>Read-only service. No funds move without explicit approval.</p></div><div className="service-contract-grid"><div><span>Input</span><strong>tokenId: string</strong></div><div><span>Permissions</span><strong>Position · pool · owner reads</strong></div><div><span>Billing</span><strong>Catalog price · settlement pending</strong></div></div><details><summary>Use with your agent</summary><pre>Use {service.name} on PancakeSwap position token ID {tokenId}. Check the price before calling. Ask me for permission before payment. Run one read-only call and show me the result and evidence trace.</pre></details></section> : null}
         <div className="lookup-stack"><form className="position-lookup" action={`/api/agents/${agent.slug}/invoke`} method="post"><label htmlFor="tokenId">Position token ID</label><div><input id="tokenId" name="tokenId" inputMode="numeric" pattern="[0-9]+" defaultValue={tokenId} /><button type="submit">Run service ↗</button></div></form><form className="position-lookup" method="get"><label htmlFor="owner">Discover wallet positions</label><div><input id="owner" name="owner" inputMode="text" pattern="0x[0-9a-fA-F]{40}" placeholder="0x…" defaultValue={ownerAddress} /><button type="submit">Find positions ↗</button></div></form></div>{invocationJob?.metadata?.test ? <section className="invocation-result" aria-label="Invocation result"><div><span className="block-label">Result</span><strong>{String(invocationJob.metadata.test.summary || "Read completed")}</strong></div><div className="result-facts"><span>Token {tokenId}</span><span>BNB block {String(invocationJob.metadata.test.block || "not available")}</span><span>Read-only</span></div><Link href={`/jobs/${invocationJob.id}`}>Open evidence trace ↗</Link></section> : null}{ownerAddress ? <p className="wallet-context">Wallet context attached: {ownerAddress.slice(0, 8)}…{ownerAddress.slice(-6)}{tokenId ? <Link href={`/agents/${agent.slug}/qualify?owner=${ownerAddress}&tokenId=${tokenId}`}>Check this position ↗</Link> : null}</p> : null}{walletPositions?.ok ? <div className="wallet-results"><span>{walletPositions.balance} position{walletPositions.balance === "1" ? "" : "s"} found</span>{walletPositions.tokenIds.map((id) => <Link href={`/agents/${agent.slug}?tokenId=${id}&owner=${walletPositions.owner}`} key={id}>Token {id} ↗</Link>)}</div> : null}
