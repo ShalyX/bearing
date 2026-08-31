@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { jobMutationError } from "@/lib/job-capability";
 
 export const dynamic = "force-dynamic";
 
@@ -8,8 +9,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const client = await db.connect();
   try {
     await client.query("BEGIN");
-    const result = await client.query("SELECT state, payment_state, metadata FROM jobs WHERE id=$1 FOR UPDATE", [id]);
+    const result = await client.query("SELECT state, payment_state, metadata, capability_hash, capability_expires_at FROM jobs WHERE id=$1 FOR UPDATE", [id]);
     if (!result.rowCount) { await client.query("ROLLBACK"); return NextResponse.json({ ok: false, error: "job_not_found" }, { status: 404 }); }
+    const guard = jobMutationError(request, id, result.rows[0]);
+    if (guard) { await client.query("ROLLBACK"); return NextResponse.json({ ok: false, error: guard.error }, { status: guard.status }); }
     const job = result.rows[0] as { state: string; payment_state: string; metadata: Record<string, unknown> };
     const execution = job.metadata.execution as { status?: string } | undefined;
     if (job.state !== "hired" || job.payment_state !== "released") { await client.query("ROLLBACK"); return NextResponse.json({ ok: false, error: "payment_settlement_required" }, { status: 409 }); }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { readPoolState } from "@/lib/integration-status";
+import { jobMutationError } from "@/lib/job-capability";
 
 export const dynamic = "force-dynamic";
 
@@ -9,8 +10,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const client = await db.connect();
   try {
     await client.query("BEGIN");
-    const result = await client.query("SELECT state, payment_state, metadata FROM jobs WHERE id=$1 FOR UPDATE", [id]);
+    const result = await client.query("SELECT state, payment_state, metadata, capability_hash, capability_expires_at FROM jobs WHERE id=$1 FOR UPDATE", [id]);
     if (!result.rowCount) { await client.query("ROLLBACK"); return NextResponse.json({ ok: false, error: "job_not_found" }, { status: 404 }); }
+    const guard = jobMutationError(request, id, result.rows[0]);
+    if (guard) { await client.query("ROLLBACK"); return NextResponse.json({ ok: false, error: guard.error }, { status: guard.status }); }
     const job = result.rows[0] as { state: string; payment_state: string; metadata: Record<string, unknown> };
     if (job.state !== "hired" || job.payment_state !== "released") { await client.query("ROLLBACK"); return NextResponse.json({ ok: false, error: "payment_settlement_required", state: job.state, paymentState: job.payment_state }, { status: 409 }); }
     const test = job.metadata.test as { token0?: string; token1?: string; fee?: number } | undefined;

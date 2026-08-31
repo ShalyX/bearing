@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { jobMutationError } from "@/lib/job-capability";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +14,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const client = await db.connect();
   try {
     await client.query("BEGIN");
-    const result = await client.query("SELECT state, payment_state FROM jobs WHERE id=$1 FOR UPDATE", [id]);
+    const result = await client.query("SELECT state, payment_state, capability_hash, capability_expires_at FROM jobs WHERE id=$1 FOR UPDATE", [id]);
     if (!result.rowCount) { await client.query("ROLLBACK"); return NextResponse.json({ ok: false, error: "job_not_found" }, { status: 404 }); }
+    const guard = jobMutationError(request, id, result.rows[0]);
+    if (guard) { await client.query("ROLLBACK"); return NextResponse.json({ ok: false, error: guard.error }, { status: guard.status }); }
     if (result.rows[0].state !== "hire_pending") { await client.query("ROLLBACK"); return NextResponse.json({ ok: false, error: "invalid_state_transition", state: result.rows[0].state }, { status: 409 }); }
     const terms = { status: configured ? "ready_for_authorization" : "unavailable", currency, amount: configured ? amount : null, payTo: configured ? payTo : null, network, authorization: "not_requested", reviewedAt: new Date().toISOString() };
     await client.query("UPDATE jobs SET metadata=metadata || $2::jsonb, updated_at=NOW() WHERE id=$1", [id, JSON.stringify({ paymentReview: terms })]);

@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { readPosition, readPositionOwner, verifyBnbRpc } from "@/lib/integration-status";
+import { jobMutationError } from "@/lib/job-capability";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const jobResult = await db.query("SELECT owner_address, token_id, state FROM jobs WHERE id=$1", [id]);
+  const jobResult = await db.query("SELECT agent_slug, owner_address, token_id, state, capability_hash, capability_expires_at FROM jobs WHERE id=$1", [id]);
   if (!jobResult.rowCount) return NextResponse.json({ ok: false, error: "job_not_found" }, { status: 404 });
-  const job = jobResult.rows[0] as { owner_address: string | null; token_id: string | null; state: string };
+  const job = jobResult.rows[0] as { agent_slug: string; owner_address: string | null; token_id: string | null; state: string; capability_hash: string | null; capability_expires_at: string | Date | null };
+  const guard = jobMutationError(request, id, job);
+  if (guard) return NextResponse.json({ ok: false, error: guard.error }, { status: guard.status });
+  if (job.agent_slug !== "pancake-position-keeper") return NextResponse.json({ ok: false, error: "agent_test_not_supported" }, { status: 409 });
   if (job.state !== "test_requested") return NextResponse.json({ ok: false, error: "invalid_state_transition", state: job.state }, { status: 409 });
   if (!job.token_id) return NextResponse.json({ ok: false, error: "token_id_required" }, { status: 422 });
 

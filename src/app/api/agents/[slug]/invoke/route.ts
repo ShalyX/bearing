@@ -189,7 +189,7 @@ async function persistEvidence(agentSlug: string, tokenReference: string, servic
 
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const limit = checkRateLimit(`invoke:${slug}`);
+  const limit = await checkRateLimit(`invoke:${slug}`);
   if (!limit.allowed) return NextResponse.json({ ok: false, error: "rate_limited", retryAfter: limit.retryAfter }, { status: 429, headers: { "Retry-After": String(limit.retryAfter), "Cache-Control": "no-store" } });
   const service = getService(serviceByAgent[slug] || "");
   if (!service) return NextResponse.json({ ok: false, error: "agent_not_found" }, { status: 404 });

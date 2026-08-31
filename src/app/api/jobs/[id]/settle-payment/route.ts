@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getBnbRpcUrl } from "@/lib/integration-status";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { jobMutationError } from "@/lib/job-capability";
 
 export const dynamic = "force-dynamic";
 const RECIPIENT = "0xC2094270dc7d17C1578a975dd1Aa50578c034Be4";
@@ -15,13 +16,15 @@ async function rpc(method: string, params: unknown[]) {
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const limit = checkRateLimit(`payment:${id}`, 5);
+  const limit = await checkRateLimit("payment:settle", 5);
   if (!limit.allowed) return NextResponse.json({ ok: false, error: "rate_limited", retryAfter: limit.retryAfter }, { status: 429, headers: { "Retry-After": String(limit.retryAfter), "Cache-Control": "no-store" } });
   const body = await request.json().catch(() => ({})) as { txHash?: string };
   if (!body.txHash || !/^0x[0-9a-fA-F]{64}$/.test(body.txHash)) return NextResponse.json({ ok: false, error: "tx_hash_required" }, { status: 400 });
-  const jobResult = await db.query("SELECT state, payment_state, owner_address, metadata FROM jobs WHERE id=$1", [id]);
+  const jobResult = await db.query("SELECT state, payment_state, owner_address, metadata, capability_hash, capability_expires_at FROM jobs WHERE id=$1", [id]);
   if (!jobResult.rowCount) return NextResponse.json({ ok: false, error: "job_not_found" }, { status: 404 });
-  const job = jobResult.rows[0] as { state: string; payment_state: string; owner_address: string | null; metadata: Record<string, unknown> };
+  const job = jobResult.rows[0] as { state: string; payment_state: string; owner_address: string | null; metadata: Record<string, unknown>; capability_hash: string | null; capability_expires_at: string | Date | null };
+  const guard = jobMutationError(request, id, job);
+  if (guard) return NextResponse.json({ ok: false, error: guard.error }, { status: guard.status });
   const authorization = job.metadata.paymentAuthorization as { status?: string } | undefined;
   const review = job.metadata.paymentReview as { status?: string; amount?: string; currency?: string; network?: string; payTo?: string } | undefined;
   if (job.state !== "hire_pending" || job.payment_state !== "pending") return NextResponse.json({ ok: false, error: "invalid_payment_state", state: job.state, paymentState: job.payment_state }, { status: 409 });
