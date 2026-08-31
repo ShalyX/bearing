@@ -8,7 +8,7 @@ The marketplace baseline was recovered at commit `7a3e936`; an abandoned single-
 
 The local and production `DATABASE_URL` are configured and the schema migration has been applied. The public `/api/ready` endpoint, local smoke test, and production build pass. A real, read-only PancakeSwap position test persisted evidence job `3f2e93a6-608f-4d4d-9540-86eb862c9527`; no wallet action or onchain write was performed.
 
-Grid Trading and Yield Optimisation are now live, read-only BSC testnet endpoints. Grid Trading read the CAKE/XRP PancakeSwap V3 pool and persisted evidence job `493ee5a9-7525-4778-9fb2-4092dce15182`; Yield Optimisation read testnet LP #11899, its pool conditions, and persisted evidence job `fd7498e8-47a7-4fc9-b9a9-c26138133b9e`. Grid is ERC-8004 #2047 and Yield is ERC-8004 #2048; both registrations resolve to live A2A agent-card routes.
+Grid Trading and Yield Optimisation are now live, read-only BSC testnet endpoints. The latest public calls persisted evidence jobs `9f36c659-fa46-4c8c-8b94-23651f397928` (Grid) and `06e7e77e-d65a-474f-b129-114c1c0cb6b3` (Yield). Grid is ERC-8004 #2047 and Yield is ERC-8004 #2048; both registrations resolve to live A2A agent-card routes, and the public host serves `/.well-known/agent-registration.json` for domain proof.
 
 ## Product decisions locked
 
@@ -25,10 +25,10 @@ Grid Trading and Yield Optimisation are now live, read-only BSC testnet endpoint
 
 ## Immediate next steps
 
-1. Attach the Grid and Yield registration transaction hashes to the submission packet if the hackathon requests transaction-level proof.
+1. Submit the public URL, registration transaction links, and latest evidence job IDs in the hackathon packet.
 2. Keep all PancakeSwap services read-only until the write-path security gate passes.
-3. Commit and push the recovered marketplace, agent-card routes, and identity metadata, then redeploy from the repository.
-4. Record identity, endpoint, invocation, result, and transaction evidence for every agent listing.
+3. Complete the optional mobile, security, and hostile-judge review before any write-path work.
+4. Record identity, endpoint, invocation, result, and transaction evidence for every future agent listing.
 
 ## Do not do
 
