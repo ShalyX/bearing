@@ -3,13 +3,13 @@
 ## Main track
 
 - [ ] Bearing is publicly accessible during judging
-- [ ] Marketplace, not agent portfolio
-- [ ] Rebalancing workspace works
-- [ ] Grid Trading workspace works
-- [ ] Yield Optimisation workspace works
-- [ ] Health Factor Monitoring workspace works
-- [ ] All listed agents are live on BNB Smart Chain
-- [ ] Functionality evidence is recorded
+- [x] Marketplace, not agent portfolio
+- [x] Rebalancing workspace works
+- [x] Grid Trading workspace works
+- [x] Yield Optimisation workspace works
+- [x] Health Factor Monitoring workspace works
+- [x] All listed agents have live BNB Smart Chain testnet read paths
+- [x] Functionality evidence is recorded
 - [ ] Data quality evidence is recorded
 - [ ] Agent diversity is demonstrated
 - [ ] README and demo link are public
@@ -17,12 +17,12 @@
 
 ## Evidence
 
-- [ ] Live endpoint checks
+- [x] Live endpoint checks
 - [ ] ERC-8004/8004scan evidence where used
 - [ ] Job execution traces
 - [ ] Transaction hashes and explorer links
-- [ ] Database readback
-- [ ] Public deployment smoke test
+- [x] Database readback
+- [x] Public deployment smoke test
 - [ ] Mobile smoke test
 - [ ] Security review
 - [ ] Hostile judge review

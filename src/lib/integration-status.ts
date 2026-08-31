@@ -1,13 +1,21 @@
-const DEFAULT_BNB_RPC_URL = "https://bsc-dataseed.binance.org";
-export const PANCAKE_V3_POSITION_MANAGER_BSC = "0x46A15B0b27311cedF172AB29E4f4766fbE7F4364";
+const DEFAULT_BNB_RPC_URL = "https://data-seed-prebsc-1-s1.bnbchain.org:8545";
+const BSC_TESTNET_CHAIN_ID = "0x61";
+export const PANCAKE_V3_POSITION_MANAGER_BSC = "0x427bF5b37357632377eCbEC9de3626C71A5396c1";
 export const PANCAKE_V3_FACTORY_BSC = "0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865";
+export const BSC_TESTNET_GRID_REFERENCE = {
+  pair: "CAKE/XRP",
+  token0: "0x8d008b313c1d6c7fe2982f62d32da7507cf43551",
+  token1: "0xb868dc5a295489088d3373ee8d365cef45c38684",
+  fee: 100,
+  referencePositionId: "11899",
+} as const;
 
 type RpcCall = { jsonrpc: "2.0"; id: number; method: string; params: unknown[] };
 
 export type PancakeIntegrationStatus = {
   provider: "pancakeswap";
   configured: boolean;
-  source: "official_bnb_rpc" | "not_configured";
+  source: "official_bnb_testnet_rpc" | "not_configured";
   liveDataEnabled: boolean;
   reason: "rpc_verified" | "rpc_unverified" | "endpoint_missing";
   chainId: string | null;
@@ -24,7 +32,7 @@ function baseStatus(): PancakeIntegrationStatus {
   return {
     provider: "pancakeswap",
     configured: true,
-    source: "official_bnb_rpc",
+    source: "official_bnb_testnet_rpc",
     liveDataEnabled: false,
     reason: "rpc_unverified",
     chainId: null,
@@ -70,7 +78,7 @@ export async function verifyBnbRpc(): Promise<PancakeIntegrationStatus> {
     const chainId = payloads[0]?.result;
     const latestBlock = payloads[1]?.result;
     const code = payloads[2]?.result;
-    if (chainId !== "0x38" || typeof latestBlock !== "string" || typeof code !== "string" || code.length <= 2) throw new Error("rpc_verification_failed");
+    if (chainId !== BSC_TESTNET_CHAIN_ID || typeof latestBlock !== "string" || typeof code !== "string" || code.length <= 2) throw new Error("rpc_verification_failed");
     return { ...baseStatus(), reason: "rpc_verified", chainId, latestBlock, positionManagerCodePresent: true };
   } catch {
     return baseStatus();
@@ -163,11 +171,43 @@ export async function readPoolState(token0: string, token1: string, fee: number)
     const poolPayload = await poolResponse.json() as { result?: string };
     if (typeof poolPayload.result !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(poolPayload.result) || /^0x0+$/.test(poolPayload.result)) return { ok: false as const, error: "pool_not_found" };
     const pool = `0x${poolPayload.result.slice(-40)}`;
-    const slotResponse = await fetchRpc({ jsonrpc: "2.0", id: 2, method: "eth_call", params: [{ to: pool, data: "0x3850c7bd" }, "latest"] });
-    const slotPayload = await slotResponse.json() as { result?: string };
-    if (typeof slotPayload.result !== "string" || slotPayload.result.length < 130) return { ok: false as const, error: "slot0_unavailable" };
+    const [slotResponse, liquidityResponse] = await Promise.all([
+      fetchRpc({ jsonrpc: "2.0", id: 2, method: "eth_call", params: [{ to: pool, data: "0x3850c7bd" }, "latest"] }),
+      fetchRpc({ jsonrpc: "2.0", id: 3, method: "eth_call", params: [{ to: pool, data: "0x1a686502" }, "latest"] }),
+    ]);
+    const [slotPayload, liquidityPayload] = await Promise.all([
+      slotResponse.json() as Promise<{ result?: string }>,
+      liquidityResponse.json() as Promise<{ result?: string }>,
+    ]);
+    if (typeof slotPayload.result !== "string" || slotPayload.result.length < 130 || typeof liquidityPayload.result !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(liquidityPayload.result)) return { ok: false as const, error: "pool_state_unavailable" };
     const sqrtPriceX96 = `0x${slotPayload.result.slice(2, 66)}`;
     const rawTick = Number.parseInt(slotPayload.result.slice(122, 130), 16);
-    return { ok: true as const, factory: PANCAKE_V3_FACTORY_BSC, pool, token0: first, token1: second, fee, sqrtPriceX96, tick: rawTick >= 0x80000000 ? rawTick - 0x100000000 : rawTick };
+    return { ok: true as const, factory: PANCAKE_V3_FACTORY_BSC, pool, token0: first, token1: second, fee, sqrtPriceX96, tick: rawTick >= 0x80000000 ? rawTick - 0x100000000 : rawTick, liquidity: BigInt(liquidityPayload.result).toString() };
   } catch { return { ok: false as const, error: "pool_state_read_failed" }; }
+}
+
+export function priceFromSqrtPriceX96(sqrtPriceX96: string, decimals0 = 18, decimals1 = 18) {
+  try {
+    const sqrtPrice = BigInt(sqrtPriceX96);
+    const ten = BigInt(10);
+    const scale = BigInt(1_000_000);
+    const numerator = sqrtPrice * sqrtPrice * (ten ** BigInt(decimals0)) * scale;
+    const denominator = (BigInt(2) ** BigInt(192)) * (ten ** BigInt(decimals1));
+    if (denominator === BigInt(0)) return null;
+    return Number(numerator / denominator) / Number(scale);
+  } catch {
+    return null;
+  }
+}
+
+export function formatTokenAmount(raw: string, decimals: number, precision = 6) {
+  try {
+    const amount = BigInt(raw);
+    const scale = BigInt(10) ** BigInt(decimals);
+    const whole = amount / scale;
+    const fraction = (amount % scale).toString().padStart(decimals, "0").slice(0, precision).replace(/0+$/, "");
+    return fraction ? `${whole}.${fraction}` : whole.toString();
+  } catch {
+    return raw;
+  }
 }

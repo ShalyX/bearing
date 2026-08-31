@@ -1,73 +1,86 @@
 import Link from "next/link";
+import { MarketNav } from "@/components/MarketNav";
 import { previewAgentAdapter } from "@/lib/agent-adapter";
 import { db } from "@/lib/db";
 import { getServicesForAgent } from "@/lib/services";
-import { readOwnedTokenIds, readPosition, readPositionOwner, readTokenMetadata, verifyBnbRpc } from "@/lib/integration-status";
 
-export default async function AgentPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams?: Promise<{ tokenId?: string | string[]; owner?: string | string[]; jobId?: string | string[] }> }) {
+type Search = { tokenId?: string | string[]; pair?: string | string[]; gridLevels?: string | string[]; position?: string | string[]; jobId?: string | string[] };
+type EvidenceJob = { id: string; state: string; metadata: { test?: Record<string, unknown> } };
+
+function first(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function validTokenId(value: string | undefined) {
+  return value && /^\d+$/.test(value) ? value : "11899";
+}
+
+export default async function AgentPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams?: Promise<Search> }) {
   const { slug } = await params;
   const query = searchParams ? await searchParams : {};
-  const requestedTokenId = Array.isArray(query.tokenId) ? query.tokenId[0] : query.tokenId;
-  const requestedOwner = Array.isArray(query.owner) ? query.owner[0] : query.owner;
-  const requestedJobId = Array.isArray(query.jobId) ? query.jobId[0] : query.jobId;
-  const tokenId = requestedTokenId && /^[0-9]+$/.test(requestedTokenId) ? requestedTokenId : "1";
-  const ownerAddress = requestedOwner && /^0x[0-9a-fA-F]{40}$/.test(requestedOwner) ? requestedOwner : "";
   const agent = await previewAgentAdapter.get(slug);
-
   if (!agent) {
-    return (
-      <main className="dossier-page">
-        <Link href="/marketplace" className="dossier-back">← Return to market</Link>
-        <p className="dossier-kicker">404 / Agent not found</p>
-        <h1>This listing is not in the market yet.</h1>
-        <p className="dossier-lede">Bearing does not create a profile for an agent before its identity and endpoint have been checked.</p>
-      </main>
-    );
+    return <main className="market-shell"><a className="skip-link" href="#main-content">Skip to content</a><MarketNav /><section className="agent-not-found" id="main-content"><p className="eyebrow">Listing unavailable</p><h1>This agent is not in the marketplace.</h1><p>Return to the directory to inspect the available agents.</p><Link className="button button-primary" href="/marketplace">Back to marketplace</Link></section></main>;
   }
 
-  let usageCount: number | null = null;
-  let reviews: { rating: number; review_text: string; created_at: string }[] = [];
-  try {
-    const usageResult = await db.query("SELECT COUNT(*)::int AS uses FROM jobs WHERE agent_slug=$1 AND state IN ('test_completed','succeeded')", [slug]);
-    const reviewResult = await db.query("SELECT rating, review_text, created_at FROM agent_reviews WHERE agent_slug=$1 ORDER BY created_at DESC LIMIT 20", [slug]);
-    usageCount = usageResult.rows[0]?.uses ?? 0;
-    reviews = reviewResult.rows as { rating: number; review_text: string; created_at: string }[];
-  } catch {
-    // The public profile remains readable, but never presents unavailable persistence as zero usage.
+  const service = getServicesForAgent(agent.slug)[0];
+  const tokenId = validTokenId(first(query.tokenId));
+  const pair = first(query.pair)?.replaceAll(" ", "").toUpperCase() || "CAKE/XRP";
+  const gridLevels = first(query.gridLevels) || "5";
+  const requestedPosition = first(query.position) || "";
+  const requestedJobId = first(query.jobId);
+  let evidenceJob: EvidenceJob | null = null;
+  if (requestedJobId) {
+    try {
+      const result = await db.query("SELECT id, state, metadata FROM jobs WHERE id=$1 AND agent_slug=$2", [requestedJobId, slug]);
+      evidenceJob = result.rowCount ? result.rows[0] as EvidenceJob : null;
+    } catch {
+      evidenceJob = null;
+    }
   }
-  const averageRating = reviews.length ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1) : null;
-  const walletPositions = ownerAddress ? await readOwnedTokenIds(ownerAddress) : null;
-  const agentServices = getServicesForAgent(slug);
-  const service = agentServices[0];
-  const [position, owner, chain] = await Promise.all([readPosition(tokenId), readPositionOwner(tokenId), verifyBnbRpc()]);
-  const tokenMetadata = position.ok ? await Promise.all([readTokenMetadata(position.token0), readTokenMetadata(position.token1)]) : [];
-  const liveVerified = position.ok && owner.ok && chain.reason === "rpc_verified" && tokenMetadata.length === 2 && tokenMetadata[0].ok && tokenMetadata[1].ok;
-  const invocation = requestedJobId ? await db.query("SELECT id, state, metadata FROM jobs WHERE id=$1 AND agent_slug=$2", [requestedJobId, slug]) : { rowCount: 0, rows: [] };
-  const invocationJob = invocation.rowCount ? invocation.rows[0] as { id: string; state: string; metadata: { test?: Record<string, unknown> } } : null;
+
+  const verifiedIdentity = agent.verification.identityVerified;
+  const identityStatus = verifiedIdentity ? "ERC-8004 identity verified" : "ERC-8004 identity registration pending";
+  const result = evidenceJob?.metadata.test;
+  const isGrid = slug === "range-cartographer";
+  const isHealth = slug === "health-monitor";
 
   return (
-    <main className="dossier-page">
-      <nav className="dossier-nav"><Link href="/" className="dossier-brand">BRG <i /></Link><span><Link href="/wallet">Wallet</Link> · <Link href="/compare">Compare</Link> · BNB / TESTNET</span></nav>
-      <div className="dossier-body">
-        <Link href="/marketplace" className="dossier-back">← Return to market</Link>
-        <header className="dossier-header">
-          <div><h1>{agent.name}</h1></div>
-          <div className="dossier-verdict"><span className="verdict-dot" />{liveVerified ? "Read-only source verified" : "Fixture preview"}<span>{liveVerified ? `BNB block ${chain.latestBlock}` : "Live verification pending"}</span></div>
-        </header>
-
-        <section className="agent-profile-meta" aria-label="Agent profile summary"><div><span>Rating</span><strong>{averageRating ? `${averageRating} / 5` : reviews.length === 0 && usageCount !== null ? "No rating yet" : "Unavailable"}</strong></div><div><span>Uses</span><strong>{usageCount === null ? "Unavailable" : usageCount}</strong></div><div><span>Agent ID</span><strong>{agent.slug}</strong></div><div><span>Network</span><strong>BNB testnet</strong></div></section>
-        <section className="profile-services"><div className="profile-section-heading"><span className="block-label">Services</span><h2>Services offered by this agent</h2></div>{service ? <div className="profile-service-card"><div><span className="service-status"><i className="status-dot online" />Online</span><h3>{service.name}</h3><p>{service.description}</p></div><div className="profile-service-side"><strong>{service.price.amount} {service.price.asset} / read</strong><span>{service.execution === "read_only" ? "Read-only" : service.execution}</span><Link href="#run-service">Run service ↗</Link></div></div> : <p className="evidence-empty">No services are listed yet.</p>}</section>
-        {service ? <section className="service-contract" id="run-service" aria-label="Service contract"><div><span className="block-label">Contract</span><p>Read-only service. No funds move without explicit approval.</p></div><div className="service-contract-grid"><div><span>Input</span><strong>tokenId: string</strong></div><div><span>Permissions</span><strong>Position · pool · owner reads</strong></div><div><span>Billing</span><strong>Catalog price · settlement pending</strong></div></div><details><summary>Use with your agent</summary><pre>Use {service.name} on PancakeSwap position token ID {tokenId}. Check the price before calling. Ask me for permission before payment. Run one read-only call and show me the result and evidence trace.</pre></details></section> : null}
-        <div className="lookup-stack"><form className="position-lookup" action={`/api/agents/${agent.slug}/invoke`} method="post"><label htmlFor="tokenId">Position token ID</label><div><input id="tokenId" name="tokenId" inputMode="numeric" pattern="[0-9]+" defaultValue={tokenId} /><button type="submit">Run service ↗</button></div></form><form className="position-lookup" method="get"><label htmlFor="owner">Discover wallet positions</label><div><input id="owner" name="owner" inputMode="text" pattern="0x[0-9a-fA-F]{40}" placeholder="0x…" defaultValue={ownerAddress} /><button type="submit">Find positions ↗</button></div></form></div>{invocationJob?.metadata?.test ? <section className="invocation-result" aria-label="Invocation result"><div><span className="block-label">Result</span><strong>{String(invocationJob.metadata.test.summary || "Read completed")}</strong></div><div className="result-facts"><span>Token {tokenId}</span><span>BNB block {String(invocationJob.metadata.test.block || "not available")}</span><span>Read-only</span></div><Link href={`/jobs/${invocationJob.id}`}>Open evidence trace ↗</Link></section> : null}{ownerAddress ? <p className="wallet-context">Wallet context attached: {ownerAddress.slice(0, 8)}…{ownerAddress.slice(-6)}{tokenId ? <Link href={`/agents/${agent.slug}/qualify?owner=${ownerAddress}&tokenId=${tokenId}`}>Check this position ↗</Link> : null}</p> : null}{walletPositions?.ok ? <div className="wallet-results"><span>{walletPositions.balance} position{walletPositions.balance === "1" ? "" : "s"} found</span>{walletPositions.tokenIds.map((id) => <Link href={`/agents/${agent.slug}?tokenId=${id}&owner=${walletPositions.owner}`} key={id}>Token {id} ↗</Link>)}</div> : null}
-        <section className="dossier-grid" aria-label="Agent evidence summary">
-          <div className="dossier-block"><span className="block-label">Capability</span><h2>Range-aware position maintenance.</h2><p>Reads the selected PancakeSwap position, observes its current range, and prepares a rebalance proposal when the configured boundary is reached.</p></div>
-          <div className="dossier-block"><span className="block-label">Permissions</span><dl><div><dt>Reads</dt><dd>Position state, pool price, liquidity range</dd></div><div><dt>Can propose</dt><dd>Bounded range update</dd></div><div><dt>Cannot do</dt><dd>Move funds without explicit approval</dd></div></dl></div>
-          <div className="dossier-block"><span className="block-label">Evidence</span>{liveVerified && position.ok && owner.ok && tokenMetadata.length === 2 && tokenMetadata[0].ok && tokenMetadata[1].ok ? <div className="evidence-live"><strong>{tokenMetadata[0].symbol} / {tokenMetadata[1].symbol} position read</strong><p>Owner {owner.owner.slice(0, 6)}…{owner.owner.slice(-4)} · fee {position.fee} · ticks {position.tickLower} to {position.tickUpper}</p><p>Liquidity {position.liquidity} · owed {position.tokensOwed0} / {position.tokensOwed1} raw units</p></div> : <div className="evidence-empty"><strong>Evidence packet pending</strong><p>A live endpoint check, real testnet invocation, result, and transaction trace must be recorded before this listing can be treated as verified supply.</p></div>}</div>
-        </section>
-
-        {reviews.length ? <section className="review-history" aria-label="Review history"><div><span className="block-label">Reviews</span><strong>★ {averageRating} from {reviews.length}</strong></div>{reviews.map((review) => <blockquote key={`${review.created_at}-${review.review_text}`}><p>“{review.review_text}”</p><cite>{new Date(review.created_at).toLocaleDateString()} · {review.rating}/5</cite></blockquote>)}</section> : null}
-        <footer className="dossier-footer"><span>Read-only service</span><span>BNB Smart Chain testnet</span></footer>
-      </div>
+    <main className="market-shell">
+      <a className="skip-link" href="#agent-content">Skip to agent details</a>
+      <MarketNav />
+      <section className="agent-header" id="agent-content" aria-labelledby="agent-name">
+        <Link href="/marketplace" className="back-link">← Back to marketplace</Link>
+        <div className="agent-header-grid">
+          <div>
+            <p className="eyebrow">{agent.category} agent</p>
+            <h1 id="agent-name">{agent.name}</h1>
+            <p>{agent.description}</p>
+          </div>
+          <aside className="agent-trust-card" aria-label="Verification status">
+            <span className={agent.verification.endpointVerified ? "status-live" : "status-pending"}>{agent.verification.endpointVerified ? "Endpoint live" : "Endpoint pending"}</span>
+            <strong>{identityStatus}</strong>
+            <p>{agent.verification.endpointVerified ? "Each successful run creates a durable Bearing evidence job." : "This profile remains unverified until its endpoint is checked."}</p>
+          </aside>
+        </div>
+        <dl className="agent-summary-grid"><div><dt>Network</dt><dd>BNB testnet</dd></div><div><dt>Execution</dt><dd>{service?.execution === "proposal" ? "Bounded proposal" : "Read-only"}</dd></div><div><dt>Permissions</dt><dd>{agent.permissions}</dd></div><div><dt>Price</dt><dd>{service ? `${service.price.amount} ${service.price.asset} · ${service.price.unit.replace("per_", "per ")}` : agent.price}</dd></div></dl>
+      </section>
+      {service ? <section className="agent-content-grid" aria-label="Agent service details">
+        <article className="agent-detail-panel">
+          <p className="eyebrow">Service contract</p>
+          <h2>{service.name}</h2>
+          <p>{service.description}</p>
+          <dl className="contract-list"><div><dt>Can read</dt><dd>{service.permissions.join(" · ")}</dd></div><div><dt>Cannot do</dt><dd>{service.execution === "proposal" ? "Submit orders, sign, or move funds" : "Sign, trade, borrow, repay, liquidate, or move funds"}</dd></div><div><dt>Evidence</dt><dd>{service.evidence.note}</dd></div></dl>
+        </article>
+        <aside className="agent-run-panel" id="run-service">
+          <p className="eyebrow">Run a testnet read</p>
+          <h2>{isHealth ? "Check a lending position" : isGrid ? "Build a bounded grid" : "Inspect LP fee conditions"}</h2>
+          {isHealth ? <form action={service.endpoint} method="post" className="agent-form"><label htmlFor="position">BNB testnet wallet address</label><input id="position" name="position" inputMode="text" pattern="0x[0-9a-fA-F]{40}" placeholder="0x…" defaultValue={requestedPosition} autoComplete="off" spellCheck={false} required /><button className="button button-primary" type="submit">Run health check <span aria-hidden="true">→</span></button><small>Opens the Health Monitor’s durable evidence trace.</small></form> : <form action={`/api/agents/${slug}/invoke`} method="post" className="agent-form">{isGrid ? <><label htmlFor="pair">PancakeSwap testnet pair</label><input id="pair" name="pair" defaultValue={pair} placeholder="CAKE/XRP…" autoComplete="off" spellCheck={false} required /><label htmlFor="gridLevels">Proposed grid levels</label><input id="gridLevels" name="gridLevels" type="number" min="3" max="9" step="2" defaultValue={gridLevels} inputMode="numeric" autoComplete="off" required /></> : <><label htmlFor="tokenId">PancakeSwap LP token ID</label><input id="tokenId" name="tokenId" inputMode="numeric" pattern="[0-9]+" defaultValue={tokenId} autoComplete="off" required /></>}<button className="button button-primary" type="submit">Run read-only service <span aria-hidden="true">→</span></button><small>{isGrid ? "Returns a bounded proposal only. No orders are submitted." : "Returns current position and pool conditions. No transaction is created."}</small></form>}
+        </aside>
+      </section> : null}
+      {result ? <section className="evidence-result" aria-label="Latest invocation evidence"><div><p className="eyebrow">Evidence job</p><h2>{String(result.summary || "Read completed")}</h2></div><dl><div><dt>Job</dt><dd>{evidenceJob?.id}</dd></div><div><dt>BNB block</dt><dd>{String(result.block || "Not available")}</dd></div><div><dt>Mode</dt><dd>{String(result.mode || "Read-only")}</dd></div></dl><Link className="button button-secondary" href={`/jobs/${evidenceJob?.id}`}>Open evidence trace</Link></section> : null}
+      <section className="agent-schema" aria-labelledby="schema-title"><div><p className="eyebrow">Input</p><h2 id="schema-title">What the agent needs</h2>{service?.inputs.map((input) => <div className="schema-row" key={input.name}><strong>{input.name}</strong><span>{input.required ? "Required" : "Optional"}</span><p>{input.description}</p></div>)}</div><div><p className="eyebrow">Output</p><h2>What you can inspect</h2>{service?.outputs.map((output) => <div className="schema-row" key={output.name}><strong>{output.name}</strong><span>{output.type}</span><p>{output.description}</p></div>)}</div></section>
+      <footer className="market-footer"><span>{agent.name}</span><span>Evidence before execution · BNB testnet</span></footer>
     </main>
   );
 }

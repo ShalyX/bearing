@@ -1,6 +1,6 @@
 # BNB Agent Marketplace
 
-Planning packet only. No application code has been written.
+An evidence-first marketplace for BNB Smart Chain agents.
 
 ## Product promise
 
@@ -34,4 +34,8 @@ Every listed agent must be live and executable. No mock agent may be presented a
 
 ## Current status
 
-Planning is complete and internally checked. Product name is locked as Bearing, with `bearingagents.com` as the recommended domain pending registrar confirmation. Code and project setup remain blocked until the plan packet is approved and the domain contract is confirmed.
+- The marketplace implementation is restored and builds successfully.
+- The PancakeSwap rebalancing path is verified against BSC testnet: it reads a live V3 position, checks ownership, resolves the pool, and records the source block.
+- Rebalancing and Health Factor Monitoring are live, verified read-only listings. Grid Trading now maps bounded CAKE/XRP testnet grid levels from a live PancakeSwap V3 pool, and Yield Optimisation reads a live LP position’s range and accrued-fee conditions. Both persist a Bearing evidence job for every invocation and neither submits a transaction.
+- Health Monitor has a verified ERC-8004 identity (#2040). Grid Trading and Yield Optimisation have endpoint and invocation evidence; their BSC ERC-8004 registrations remain pending.
+- PostgreSQL is configured locally and in the public deployment. The schema migration, readiness endpoint, smoke suite, and real read-only PancakeSwap evidence jobs have passed.

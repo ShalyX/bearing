@@ -1,17 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { MarketNav } from "@/components/MarketNav";
 import { agentCategories, agents } from "@/lib/agents";
 import { services } from "@/lib/services";
 
 type Category = (typeof agentCategories)[number];
 type Sort = "relevance" | "rating" | "usage" | "price";
 
-export default function Marketplace() {
-  const [selectedCategory, setSelectedCategory] = useState<Category>("All");
-  const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<Sort>("relevance");
+function validCategory(value: string | null): Category {
+  return agentCategories.includes(value as Category) ? value as Category : "All";
+}
+
+function MarketplaceDirectory() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [selectedCategory, setSelectedCategory] = useState<Category>(() => validCategory(searchParams.get("category")));
+  const [query, setQuery] = useState(() => searchParams.get("q") || "");
+  const [sort, setSort] = useState<Sort>(() => (searchParams.get("sort") as Sort) || "relevance");
+
+  const updateUrl = useCallback((changes: Record<string, string>) => {
+    const next = new URLSearchParams(searchParams.toString());
+    Object.entries(changes).forEach(([key, value]) => {
+      if (!value || value === "All" || value === "relevance") next.delete(key);
+      else next.set(key, value);
+    });
+    const suffix = next.toString();
+    router.replace(suffix ? `/marketplace?${suffix}` : "/marketplace", { scroll: false });
+  }, [router, searchParams]);
+
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
     return agents.filter((agent) => {
@@ -19,13 +38,57 @@ export default function Marketplace() {
       const matchesCategory = selectedCategory === "All" || agent.category === selectedCategory;
       const matchesQuery = !term || `${agent.name} ${agent.category} ${agent.note} ${service?.name || ""} ${service?.description || ""}`.toLowerCase().includes(term);
       return matchesCategory && matchesQuery;
-    }).sort((a, b) => {
-      if (sort === "rating") return b.rating - a.rating;
-      if (sort === "usage") return b.usageCount - a.usageCount;
-      if (sort === "price") return a.price.localeCompare(b.price);
-      return 0;
+    }).slice().sort((left, right) => {
+      const leftService = services.find((item) => item.agentSlug === left.slug);
+      const rightService = services.find((item) => item.agentSlug === right.slug);
+      if (sort === "rating") return right.rating - left.rating;
+      if (sort === "usage") return right.usageCount - left.usageCount;
+      if (sort === "price") return Number(leftService?.price.amount || Number.MAX_SAFE_INTEGER) - Number(rightService?.price.amount || Number.MAX_SAFE_INTEGER);
+      return Number(right.status === "online") - Number(left.status === "online");
     });
   }, [query, selectedCategory, sort]);
 
-  return <main className="bearing-page"><nav className="bearing-nav"><Link href="/" className="bearing-mark" aria-label="Bearing home"><span>BRG</span><i /></Link><div className="bearing-nav-links"><Link href="/marketplace">Marketplace</Link><Link href="/compare">Compare</Link><Link href="/about/evidence">Evidence</Link><Link href="/wallet">Wallet</Link><span>BNB / TESTNET</span></div></nav><section className="marketplace-heading"><h1>Agent services</h1><p>Onchain work with evidence you can inspect.</p></section><section className="market-section" aria-labelledby="market-title"><div className="market-header"><div><h2 id="market-title">Available agents</h2></div><span>{filtered.length} listing{filtered.length === 1 ? "" : "s"}</span></div><div className="market-controls"><label className="market-search"><span>Search</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search services or capabilities" /></label><label className="market-sort"><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value as Sort)}><option value="relevance">Relevance</option><option value="rating">Highest rated</option><option value="usage">Most used</option><option value="price">Price</option></select></label></div><div className="category-line" role="tablist" aria-label="Service categories">{agentCategories.map((category) => <button key={category} type="button" role="tab" aria-selected={selectedCategory === category} onClick={() => setSelectedCategory(category)}>{category}</button>)}</div><div className="agent-index">{filtered.map((agent) => { const service = services.find((item) => item.agentSlug === agent.slug); const destination = `/agents/${agent.slug}`; return <Link className="agent-row" href={destination} key={agent.name}><div className="row-main"><span className="row-category"><i className={`status-dot ${agent.status}`} />{agent.category}</span><h3>{agent.name}</h3><p>{agent.note}</p><small>{agent.evidence}</small></div><div className="row-meta"><strong>{service ? `${service.price.amount} ${service.price.asset} / ${service.price.unit.replace("per_", "")}` : agent.price}</strong><span>{service ? service.execution === "read_only" ? "Read-only service" : service.execution === "proposal" ? "Proposal service" : "Execution service" : "Service pending"}</span><span>{agent.rating ? `★ ${agent.rating} · ${agent.reviewCount} reviews` : "No reviews yet"}</span><span>{agent.usageCount} uses</span><b>View agent ↗</b></div></Link>; })}</div></section><footer className="bearing-footer"><span>Bearing</span><span>BNB / TESTNET</span></footer></main>;
+  return (
+    <main className="market-shell">
+      <a className="skip-link" href="#agent-list">Skip to agent listings</a>
+      <MarketNav />
+      <section className="market-directory-heading" aria-labelledby="market-title">
+        <div>
+          <p className="eyebrow">Agent directory</p>
+          <h1 id="market-title">Choose a capability, not a black box.</h1>
+          <p>Every listing makes its live status, permission boundary, and evidence standard explicit.</p>
+        </div>
+        <div className="directory-summary"><i aria-hidden="true" /><strong>{agents.filter((agent) => agent.status === "online").length} live agents</strong><span>on BNB testnet</span></div>
+      </section>
+      <section className="market-directory" id="agent-list" aria-labelledby="directory-title">
+        <div className="directory-toolbar">
+          <div><h2 id="directory-title">Marketplace listings</h2><p>{filtered.length} result{filtered.length === 1 ? "" : "s"} matching your view</p></div>
+          <label className="market-sort" htmlFor="agent-sort"><span>Sort by</span><select id="agent-sort" name="sort" value={sort} onChange={(event) => { const next = event.target.value as Sort; setSort(next); updateUrl({ sort: next }); }}><option value="relevance">Recommended</option><option value="rating">Highest rated</option><option value="usage">Most used</option><option value="price">Lowest price</option></select></label>
+        </div>
+        <div className="directory-controls">
+          <label className="directory-search" htmlFor="agent-search"><span>Search agents</span><input id="agent-search" name="q" value={query} onChange={(event) => { const next = event.target.value; setQuery(next); updateUrl({ q: next }); }} placeholder="Search capabilities or pairs…" autoComplete="off" spellCheck={false} /></label>
+          <fieldset className="category-filters"><legend>Filter by category</legend><div>{agentCategories.map((category) => <button key={category} type="button" aria-pressed={selectedCategory === category} onClick={() => { setSelectedCategory(category); updateUrl({ category }); }}>{category}</button>)}</div></fieldset>
+        </div>
+        <div className="agent-card-grid">
+          {filtered.map((agent) => {
+            const service = services.find((item) => item.agentSlug === agent.slug);
+            const identityStatus = agent.slug === "health-monitor" ? "Identity + endpoint verified" : agent.status === "online" ? "Endpoint verified · identity pending" : "Verification pending";
+            return <Link className="market-agent-card" href={`/agents/${agent.slug}`} key={agent.slug}>
+              <div className="agent-card-top"><span className="agent-category">{agent.category}</span><span className={agent.status === "online" ? "status-live" : "status-pending"}>{agent.status === "online" ? "Live" : "Pending"}</span></div>
+              <h3>{agent.name}</h3>
+              <p>{agent.note}</p>
+              <dl className="agent-card-facts"><div><dt>Mode</dt><dd>{service?.execution === "proposal" ? "Proposal only" : "Read-only"}</dd></div><div><dt>Trust</dt><dd>{identityStatus}</dd></div><div><dt>Price</dt><dd>{service ? `${service.price.amount} ${service.price.asset}` : "Not listed"}</dd></div></dl>
+              <footer><span>{agent.network}</span><b>Inspect agent <span aria-hidden="true">→</span></b></footer>
+            </Link>;
+          })}
+        </div>
+        {filtered.length === 0 ? <div className="market-empty"><strong>No agents match this view.</strong><p>Clear the search or choose a different category.</p></div> : null}
+      </section>
+      <footer className="market-footer"><span>Bearing marketplace</span><span>Read evidence first · BNB testnet</span></footer>
+    </main>
+  );
+}
+
+export default function Marketplace() {
+  return <Suspense fallback={<main className="market-shell"><a className="skip-link" href="#agent-list">Skip to agent listings</a><MarketNav /><section className="market-directory-heading" id="agent-list" aria-busy="true"><div><p className="eyebrow">Agent directory</p><h1>Loading marketplace…</h1><p>Preparing the agent directory.</p></div></section></main>}><MarketplaceDirectory /></Suspense>;
 }
