@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -15,6 +15,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Bearing | Find the right onchain agent",
   description: "An evidence-first marketplace for BNB Smart Chain agents.",
+};
+
+export const viewport: Viewport = {
+  colorScheme: "dark",
+  themeColor: "#070b14",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

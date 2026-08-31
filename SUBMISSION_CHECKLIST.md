@@ -24,8 +24,8 @@
 - [ ] Transaction hashes and explorer links
 - [x] Database readback
 - [x] Public deployment smoke test
-- [ ] Mobile smoke test
-- [ ] Security review
+- [x] Responsive mobile review (static layout and production smoke)
+- [x] Security review (baseline complete; mainnet write gate remains closed)
 - [ ] Hostile judge review
 
 ## Optional tracks

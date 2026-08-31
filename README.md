@@ -31,6 +31,7 @@ Every listed agent must be live and executable. No mock agent may be presented a
 - `HANDOFF.md`: current state and the next safe continuation point.
 - `ARCHITECTURE.md`: marketplace boundaries, adapters, domain objects, and data flow.
 - `DESIGN.md`: UX, visual system, surfaces, states, and usability checks.
+- `SECURITY_REVIEW.md`: baseline security and responsive mobile review, including remaining mainnet gates.
 
 ## Current status
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { randomUUID } from "node:crypto";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { agents } from "@/lib/agents";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export async function POST(request: Request) {
   let body: { agentSlug?: string; ownerAddress?: string; tokenId?: string };
   if (contentType.includes("application/json")) body = await request.json().catch(() => ({})) as { agentSlug?: string; ownerAddress?: string; tokenId?: string };
   else { const form = await request.formData(); body = { agentSlug: String(form.get("agentSlug") || ""), ownerAddress: String(form.get("ownerAddress") || ""), tokenId: String(form.get("tokenId") || "") }; }
-  if (!body.agentSlug || (body.ownerAddress && !/^0x[0-9a-fA-F]{40}$/.test(body.ownerAddress)) || (body.tokenId && !/^\d+$/.test(body.tokenId))) return NextResponse.json({ ok: false, error: "invalid_job_request" }, { status: 400 });
+  if (!body.agentSlug || !agents.some((agent) => agent.slug === body.agentSlug) || (body.ownerAddress && !/^0x[0-9a-fA-F]{40}$/.test(body.ownerAddress)) || (body.tokenId && !/^\d+$/.test(body.tokenId))) return NextResponse.json({ ok: false, error: "invalid_job_request" }, { status: 400 });
   const id = randomUUID();
   const client = await db.connect();
   try {
@@ -21,10 +22,7 @@ export async function POST(request: Request) {
     await client.query("INSERT INTO job_events (job_id, event_type, payload) VALUES ($1,'created',$2)", [id, JSON.stringify({ state: "draft" })]);
     await client.query("COMMIT");
     if (!contentType.includes("application/json")) {
-      const forwardedHost = request.headers.get("x-forwarded-host") || request.headers.get("host");
-      const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
-      const base = forwardedHost ? `${forwardedProto}://${forwardedHost}` : new URL(request.url).origin;
-      return NextResponse.redirect(new URL(`/jobs/${id}`, base), 303);
+      return NextResponse.redirect(new URL(`/jobs/${id}`, request.url), 303);
     }
     return NextResponse.json({ ok: true, job: { id, state: "draft", paymentState: "not_required" } }, { status: 201 });
   } catch { await client.query("ROLLBACK"); return NextResponse.json({ ok: false, error: "job_create_failed" }, { status: 500 }); } finally { client.release(); }
