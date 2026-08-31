@@ -10,6 +10,8 @@ The local and production `DATABASE_URL` are configured and the schema migration 
 
 Grid Trading and Yield Optimisation are now live, read-only BSC testnet endpoints. The latest public calls persisted evidence jobs `9f36c659-fa46-4c8c-8b94-23651f397928` (Grid) and `06e7e77e-d65a-474f-b129-114c1c0cb6b3` (Yield). Grid is ERC-8004 #2047 and Yield is ERC-8004 #2048; both registrations resolve to live A2A agent-card routes, and the public host serves `/.well-known/agent-registration.json` for domain proof.
 
+The baseline mobile and security review is complete. The public smoke suite and security headers pass, payment receipts are sender-bound and rate-limited, and the mobile marketplace keeps navigation, safe areas, focus states, and responsive cards intact. Remaining mainnet gates are documented in `SECURITY_REVIEW.md`.
+
 ## Product decisions locked
 
 - The submitted product is the marketplace, not an agent portfolio.
@@ -27,7 +29,7 @@ Grid Trading and Yield Optimisation are now live, read-only BSC testnet endpoint
 
 1. Submit the public URL, registration transaction links, and latest evidence job IDs in the hackathon packet.
 2. Keep all PancakeSwap services read-only until the write-path security gate passes.
-3. Complete the optional mobile, security, and hostile-judge review before any write-path work.
+3. Complete the optional hostile-judge review before any write-path work.
 4. Record identity, endpoint, invocation, result, and transaction evidence for every future agent listing.
 
 ## Do not do
