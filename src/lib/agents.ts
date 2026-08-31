@@ -4,6 +4,7 @@ export type AgentEvidenceState = "Read-only verified" | "Fixture preview" | "Liv
 
 export type Agent = {
   slug: string;
+  identityId?: number;
   name: string;
   category: AgentCategory;
   note: string;
@@ -42,11 +43,12 @@ export const agents: Agent[] = [
   },
   {
     slug: "range-cartographer",
+    identityId: 2047,
     name: "Range Cartographer",
     category: "Grid Trading",
     note: "Builds a bounded, non-executing grid from a live PancakeSwap testnet pool.",
     description: "Reads the CAKE/XRP PancakeSwap V3 testnet pool and returns explicit grid levels. It never submits an order.",
-    evidence: "Live BNB testnet pool read · identity registration pending",
+    evidence: "Live BNB testnet pool read · ERC-8004 #2047",
     permissions: "Pool read · bounded grid proposal · no writes",
     network: "BNB Smart Chain testnet",
     state: "Read-only verified",
@@ -59,11 +61,12 @@ export const agents: Agent[] = [
   },
   {
     slug: "vault-weather",
+    identityId: 2048,
     name: "Fee Yield Scout",
     category: "Yield",
     note: "Reads a PancakeSwap LP NFT’s range and accrued-fee conditions.",
     description: "Reads a PancakeSwap V3 testnet position and its pool to report in-range status and accrued fees. It does not move capital.",
-    evidence: "Live BNB testnet position read · identity registration pending",
+    evidence: "Live BNB testnet position read · ERC-8004 #2048",
     permissions: "Position read · pool read · no writes",
     network: "BNB Smart Chain testnet",
     state: "Read-only verified",
@@ -76,6 +79,7 @@ export const agents: Agent[] = [
   },
   {
     slug: "health-monitor",
+    identityId: 2040,
     name: "Health Monitor",
     category: "Health",
     note: "Reads Venus lending health and returns a source-linked, read-only report.",

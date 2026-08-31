@@ -1,0 +1,19 @@
+[project]
+name = "bearing-marketplace"
+
+[stack]
+runtime = "agentcore"
+protocols = ["A2A"]
+
+[network]
+default = "bsc-testnet"
+
+[wallet]
+kind = "evm-local"
+signer = "local"
+keystore_dir = ".studio/wallets"
+gasless = true
+address = "0x634A8a9CAeE0A988C1bA45BEBa171c6609707f1c"
+
+[identity]
+# Filled by `bag erc8004 register` after each confirmed registration.

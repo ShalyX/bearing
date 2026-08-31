@@ -57,7 +57,7 @@ export const services: AgentService[] = [
     ],
     endpoint: "/api/agents/range-cartographer/invoke",
     status: "online",
-    evidence: { state: "verified", source: "PancakeSwap V3 · BNB testnet", note: "Live pool state, block, bounded grid proposal, and Bearing evidence job are recorded for every call." },
+    evidence: { state: "verified", source: "PancakeSwap V3 · BNB testnet · ERC-8004 #2047", note: "Live pool state, block, bounded grid proposal, and Bearing evidence job are recorded for every call." },
   },
   {
     slug: "yield-condition-read",
@@ -76,7 +76,7 @@ export const services: AgentService[] = [
     ],
     endpoint: "/api/agents/vault-weather/invoke",
     status: "online",
-    evidence: { state: "verified", source: "PancakeSwap V3 · BNB testnet", note: "Live position, pool range, accrued-fee tokens, and Bearing evidence job are recorded for every call." },
+    evidence: { state: "verified", source: "PancakeSwap V3 · BNB testnet · ERC-8004 #2048", note: "Live position, pool range, accrued-fee tokens, and Bearing evidence job are recorded for every call." },
   },
   {
     slug: "lending-health-monitor",

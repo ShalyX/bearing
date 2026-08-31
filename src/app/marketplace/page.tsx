@@ -72,7 +72,7 @@ function MarketplaceDirectory() {
         <div className="agent-card-grid">
           {filtered.map((agent) => {
             const service = services.find((item) => item.agentSlug === agent.slug);
-            const identityStatus = agent.slug === "health-monitor" ? "Identity + endpoint verified" : agent.status === "online" ? "Endpoint verified · identity pending" : "Verification pending";
+            const identityStatus = agent.identityId ? `ERC-8004 #${agent.identityId} · identity + endpoint verified` : agent.status === "online" ? "Endpoint verified · identity pending" : "Verification pending";
             return <Link className="market-agent-card" href={`/agents/${agent.slug}`} key={agent.slug}>
               <div className="agent-card-top"><span className="agent-category">{agent.category}</span><span className={agent.status === "online" ? "status-live" : "status-pending"}>{agent.status === "online" ? "Live" : "Pending"}</span></div>
               <h3>{agent.name}</h3>

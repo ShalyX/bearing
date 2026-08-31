@@ -4,11 +4,11 @@
 
 The Build the Era requirements were verified against the official BNB Chain challenge page and the marketplace implementation is present in this repository.
 
-The marketplace baseline was recovered at commit `7a3e936`; an abandoned single-agent rewrite is preserved separately in `stash@{0}`. The PancakeSwap rebalancing read path now targets BSC testnet and has been verified against a live V3 position, its owner, and its pool. Health Monitor is integrated through its public, read-only endpoint, verified against an actual JSON response and durable evidence trace, and identified as ERC-8004 #2040. No wallet write transaction has been performed.
+The marketplace baseline was recovered at commit `7a3e936`; an abandoned single-agent rewrite is preserved separately in `stash@{0}`. The PancakeSwap rebalancing read path now targets BSC testnet and has been verified against a live V3 position, its owner, and its pool. Health Monitor is integrated through its public, read-only endpoint, verified against an actual JSON response and durable evidence trace, and identified as ERC-8004 #2040. Grid and Yield identities were registered from dedicated BSC testnet wallets as ERC-8004 #2047 and #2048.
 
 The local and production `DATABASE_URL` are configured and the schema migration has been applied. The public `/api/ready` endpoint, local smoke test, and production build pass. A real, read-only PancakeSwap position test persisted evidence job `3f2e93a6-608f-4d4d-9540-86eb862c9527`; no wallet action or onchain write was performed.
 
-Grid Trading and Yield Optimisation are now live, read-only BSC testnet endpoints. Grid Trading read the CAKE/XRP PancakeSwap V3 pool and persisted evidence job `493ee5a9-7525-4778-9fb2-4092dce15182`; Yield Optimisation read testnet LP #11899, its pool conditions, and persisted evidence job `fd7498e8-47a7-4fc9-b9a9-c26138133b9e`. Their ERC-8004 identities are intentionally still marked pending until they are registered on BSC.
+Grid Trading and Yield Optimisation are now live, read-only BSC testnet endpoints. Grid Trading read the CAKE/XRP PancakeSwap V3 pool and persisted evidence job `493ee5a9-7525-4778-9fb2-4092dce15182`; Yield Optimisation read testnet LP #11899, its pool conditions, and persisted evidence job `fd7498e8-47a7-4fc9-b9a9-c26138133b9e`. Grid is ERC-8004 #2047 and Yield is ERC-8004 #2048; both registrations resolve to live A2A agent-card routes.
 
 ## Product decisions locked
 
@@ -19,15 +19,15 @@ Grid Trading and Yield Optimisation are now live, read-only BSC testnet endpoint
 - The marketplace is non-custodial.
 - The flagship supply item is a real PancakeSwap concentrated-liquidity rebalancer.
 - Product name: Bearing. Recommended domain: `bearingagents.com`, pending registrar confirmation.
-- Health Factor Monitoring has a verified live integration and ERC-8004 #2040. Rebalancing, Grid Trading, and Yield Optimisation have verified live BSC testnet read paths; Grid and Yield still require BSC ERC-8004 registration.
+- Health Factor Monitoring has a verified live integration and ERC-8004 #2040. Rebalancing, Grid Trading, and Yield Optimisation have verified live BSC testnet read paths; Grid and Yield are ERC-8004 #2047 and #2048.
 - No public mock execution or invented performance evidence.
 - No write transaction before a security review passes.
 
 ## Immediate next steps
 
-1. Register BSC ERC-8004 identities for Grid Trading and Yield Optimisation, then attach the resulting IDs and transaction evidence to their listings.
+1. Attach the Grid and Yield registration transaction hashes to the submission packet if the hackathon requests transaction-level proof.
 2. Keep all PancakeSwap services read-only until the write-path security gate passes.
-3. Commit and push the recovered marketplace and new agent work, then redeploy from the repository.
+3. Commit and push the recovered marketplace, agent-card routes, and identity metadata, then redeploy from the repository.
 4. Record identity, endpoint, invocation, result, and transaction evidence for every agent listing.
 
 ## Do not do

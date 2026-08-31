@@ -37,5 +37,5 @@ Every listed agent must be live and executable. No mock agent may be presented a
 - The marketplace implementation is restored and builds successfully.
 - The PancakeSwap rebalancing path is verified against BSC testnet: it reads a live V3 position, checks ownership, resolves the pool, and records the source block.
 - Rebalancing and Health Factor Monitoring are live, verified read-only listings. Grid Trading now maps bounded CAKE/XRP testnet grid levels from a live PancakeSwap V3 pool, and Yield Optimisation reads a live LP position’s range and accrued-fee conditions. Both persist a Bearing evidence job for every invocation and neither submits a transaction.
-- Health Monitor has a verified ERC-8004 identity (#2040). Grid Trading and Yield Optimisation have endpoint and invocation evidence; their BSC ERC-8004 registrations remain pending.
+- Health Monitor has a verified ERC-8004 identity (#2040). Grid Trading and Yield Optimisation are verified as ERC-8004 #2047 and #2048, with live A2A cards, endpoint/invocation evidence, and no write permissions.
 - PostgreSQL is configured locally and in the public deployment. The schema migration, readiness endpoint, smoke suite, and real read-only PancakeSwap evidence jobs have passed.
