@@ -251,3 +251,97 @@ button { font: inherit; }
 .evidence-result { display: grid; grid-template-columns: 1.25fr 1fr auto; gap: 24px; align-items: end; margin-top: 16px; border: 1px solid rgba(102, 226, 163, .28); border-radius: 12px; background: rgba(36, 112, 77, .12); padding: 25px 28px; }.evidence-result h2 { margin-top: 6px; font-size: 20px; }.evidence-result dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 0; }.evidence-result dd { margin: 8px 0 0; color: #dce6f7; font-family: var(--font-geist-mono), monospace; font-size: 11px; overflow-wrap: anywhere; }
 .agent-schema { display: grid; grid-template-columns: 1fr 1fr; gap: 70px; padding: 72px 28px; }.agent-schema h2 { margin-bottom: 20px; }.schema-row { display: grid; grid-template-columns: 1fr auto; gap: 7px 18px; border-top: 1px solid var(--market-border); padding: 15px 0; }.schema-row strong { font-size: 14px; }.schema-row span { color: var(--market-muted); font-family: var(--font-geist-mono), monospace; font-size: 10px; }.schema-row p { grid-column: 1 / -1; margin: 0; color: var(--market-muted); font-size: 13px; line-height: 1.45; }.agent-not-found { padding: 120px 28px; }.agent-not-found p:not(.eyebrow) { max-width: 520px; margin: 23px 0 0; color: var(--market-muted); font-size: 16px; line-height: 1.55; }.agent-not-found .button { margin-top: 28px; }
 @media (max-width: 780px) { .market-nav { grid-template-columns: 1fr auto; grid-template-areas: "brand network" "links links"; gap: 0 16px; min-height: 72px; padding: max(12px, env(safe-area-inset-top)) 20px 12px; }.market-brand { grid-area: brand; }.market-nav-links { grid-area: links; display: flex; min-width: 0; gap: 18px; overflow-x: auto; padding: 12px 0 2px; scrollbar-width: none; }.market-nav-links::-webkit-scrollbar { display: none; }.market-nav-links a { flex: 0 0 auto; padding: 4px 0; }.market-hero, .market-directory-heading, .agent-header-grid, .agent-content-grid, .agent-schema, .evidence-result { grid-template-columns: 1fr; }.market-hero, .market-directory-heading { padding-right: 20px; padding-left: 20px; }.market-directory-heading { align-items: start; }.market-network { font-size: 9px; }.market-proof-strip { display: block; margin: 0 20px; }.market-proof-strip div { min-height: 0; border-top: 1px solid var(--market-border); border-left: 0; }.market-proof-strip div:first-child { border-top: 0; }.market-proof-strip strong { margin-top: 18px; }.market-featured, .market-directory, .agent-header, .agent-content-grid, .agent-schema { padding-right: 20px; padding-left: 20px; }.featured-grid, .agent-card-grid { grid-template-columns: 1fr; }.section-heading, .directory-toolbar { align-items: start; flex-direction: column; }.directory-controls { grid-template-columns: 1fr; }.directory-search input { width: 100%; }.category-filters div { justify-content: start; }.agent-header-grid { gap: 26px; margin-top: 36px; }.agent-summary-grid { grid-template-columns: repeat(2, 1fr); }.agent-summary-grid div:nth-child(odd) { border-left: 0; }.agent-summary-grid div:nth-child(n + 3) { border-top: 1px solid var(--market-border); }.evidence-result { align-items: start; margin-right: 20px; margin-left: 20px; }.evidence-result dl { grid-template-columns: 1fr 1fr; }.market-footer { flex-direction: column; padding-right: 20px; padding-left: 20px; padding-bottom: max(34px, env(safe-area-inset-bottom)); } }
+
+/* Bearing market: paper, ink, and one clear signal. */
+html { background: #f4f2ec; }
+body { background: #f4f2ec; color: #1d211d; }
+.market-shell {
+  --market-bg: #f4f2ec;
+  --market-surface: #fffdfa;
+  --market-surface-raised: #e9e7de;
+  --market-border: #cbc9bf;
+  --market-muted: #656961;
+  --market-text: #1d211d;
+  --market-accent: #ef5b3f;
+  --market-success: #1a7751;
+  background: var(--market-bg);
+  color: var(--market-text);
+}
+.market-shell a, .market-shell button, .market-shell input, .market-shell select { -webkit-tap-highlight-color: transparent; }
+.market-shell a:focus-visible, .market-shell button:focus-visible, .market-shell input:focus-visible, .market-shell select:focus-visible { outline: 2px solid var(--market-accent); outline-offset: 3px; }
+.market-nav { position: sticky; top: 0; z-index: 20; max-width: 1280px; min-height: 76px; border-bottom: 1px solid var(--market-text); background: var(--market-bg); }
+.market-brand { color: var(--market-text); font-weight: 760; letter-spacing: -.045em; }
+.market-brand span { color: var(--market-accent); }
+.market-nav-links { color: var(--market-muted); font-size: 12px; font-weight: 600; }
+.market-nav-links a:hover { color: var(--market-accent); }
+.market-network { color: var(--market-muted); }
+.market-network i, .panel-status i, .directory-summary i { background: var(--market-success); box-shadow: none; }
+.market-hero { gap: clamp(40px, 8vw, 112px); padding-top: clamp(64px, 8vw, 106px); padding-bottom: 70px; }
+.eyebrow { color: var(--market-accent); font-weight: 700; letter-spacing: .12em; }
+.market-hero h1, .market-directory-heading h1, .agent-header h1, .agent-not-found h1 { font-weight: 700; letter-spacing: -.075em; }
+.market-hero h1 span { color: var(--market-accent); }
+.market-hero-lede, .market-directory-heading > div > p:not(.eyebrow), .directory-toolbar > div > p { color: var(--market-muted); }
+.button { border-radius: 2px; transition: background-color .18s ease, border-color .18s ease, color .18s ease, transform .18s ease; }
+.button-primary { background: var(--market-text); color: var(--market-bg); }
+.button-primary:hover { background: var(--market-accent); color: #fffdfa; }
+.button-secondary { border-color: var(--market-text); background: transparent; color: var(--market-text); }
+.button-secondary:hover { border-color: var(--market-accent); background: var(--market-accent); color: #fffdfa; }
+.market-hero-panel, .agent-trust-card { border: 1px solid var(--market-text); border-radius: 2px; background: var(--market-text); box-shadow: none; color: var(--market-bg); }
+.market-hero-panel { padding: 25px; }
+.panel-status { color: #98d5ae; }
+.market-hero-panel dt, .market-hero-panel p { color: #b7bdb5; }
+.market-hero-panel dd { color: var(--market-bg); }
+.market-proof-strip { border-color: var(--market-text); background: var(--market-surface); }
+.market-proof-strip div { border-color: var(--market-border); }
+.market-proof-strip span { color: var(--market-accent); }
+.market-proof-strip p { color: var(--market-muted); }
+.market-featured { padding-top: 72px; padding-bottom: 80px; }
+.section-heading > a { color: var(--market-accent); }
+.featured-agent, .market-agent-card { min-height: 280px; border: 1px solid var(--market-text); border-radius: 2px; background: transparent; box-shadow: none; padding: 22px; transition: border-color .18s ease, background-color .18s ease, transform .18s ease; }
+.featured-agent:hover, .market-agent-card:hover { border-color: var(--market-accent); background: var(--market-surface); transform: translateY(-2px); }
+.featured-agent:nth-child(4n + 1), .market-agent-card:nth-child(4n + 1) { border-top: 4px solid var(--market-accent); }
+.featured-agent:nth-child(4n + 2), .market-agent-card:nth-child(4n + 2) { border-top: 4px solid #d2a523; }
+.featured-agent:nth-child(4n + 3), .market-agent-card:nth-child(4n + 3) { border-top: 4px solid #4c7b9d; }
+.featured-agent:nth-child(4n + 4), .market-agent-card:nth-child(4n + 4) { border-top: 4px solid var(--market-success); }
+.featured-agent-top, .agent-card-top { color: var(--market-muted); }
+.agent-category { color: var(--market-accent); font-weight: 700; }
+.featured-agent h3, .market-agent-card h3 { font-weight: 700; }
+.featured-agent p, .market-agent-card > p { color: var(--market-muted); }
+.featured-agent footer, .market-agent-card footer { border-top: 1px solid var(--market-border); color: var(--market-muted); }
+.featured-agent footer b, .market-agent-card footer b, .row-action { color: var(--market-accent); }
+.status-live { color: var(--market-success); }.status-pending { color: #9a7116; }
+.market-footer { border-color: var(--market-text); color: var(--market-muted); }
+.market-directory-heading { padding-top: 66px; padding-bottom: 42px; border-color: var(--market-text); }
+.directory-search input, .market-sort select, .agent-form input { border-color: var(--market-text); border-radius: 2px; background: var(--market-surface); color: var(--market-text); }
+.market-sort select { color-scheme: light; }
+.category-filters button { border-color: var(--market-border); border-radius: 2px; background: transparent; color: var(--market-muted); }
+.category-filters button:hover, .category-filters button[aria-pressed="true"] { border-color: var(--market-text); background: var(--market-text); color: var(--market-bg); }
+.market-agent-card { min-height: 322px; }
+.agent-card-facts { border-top: 1px solid var(--market-border); padding-top: 18px; }
+.agent-card-facts dt, .agent-summary-grid dt, .evidence-result dt { color: var(--market-muted); }
+.agent-card-facts dd, .agent-summary-grid dd, .evidence-result dd { color: var(--market-text); }
+.market-empty { border-color: var(--market-text); }
+.agent-header { padding-top: 40px; }
+.back-link { color: var(--market-accent); }
+.agent-trust-card { background: var(--market-text); }
+.agent-summary-grid, .agent-detail-panel, .agent-run-panel { border-color: var(--market-text); border-radius: 2px; background: var(--market-surface); }
+.agent-summary-grid { box-shadow: none; }
+.agent-summary-grid div { border-color: var(--market-border); }
+.agent-content-grid { gap: 18px; }
+.agent-detail-panel, .agent-run-panel { padding: 28px; }
+.contract-list div, .schema-row { border-color: var(--market-border); }
+.evidence-result { border-color: var(--market-success); border-radius: 2px; background: #e8f0e8; }
+.agent-schema { padding-top: 64px; }
+.agent-not-found { padding-top: 100px; }
+
+@media (max-width: 780px) {
+  .market-nav { background: var(--market-bg); }
+  .market-hero { padding-top: 58px; padding-bottom: 54px; }
+  .market-hero h1, .market-directory-heading h1 { font-size: clamp(2.9rem, 13vw, 4.7rem); }
+  .market-directory-heading { display: block; }
+  .directory-summary { margin-top: 26px; }
+  .market-proof-strip { margin-right: 20px; margin-left: 20px; }
+  .market-featured { padding-top: 58px; }
+  .market-agent-card, .featured-agent { min-height: 0; }
+  .agent-header { padding-top: 32px; }
+}

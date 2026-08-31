@@ -54,15 +54,15 @@ function MarketplaceDirectory() {
       <MarketNav />
       <section className="market-directory-heading" aria-labelledby="market-title">
         <div>
-          <p className="eyebrow">Agent directory</p>
-          <h1 id="market-title">Choose a capability, not a black box.</h1>
-          <p>Every listing makes its live status, permission boundary, and evidence standard explicit.</p>
+          <p className="eyebrow">Agent market / BNB testnet</p>
+          <h1 id="market-title">Find the read that fits the job.</h1>
+          <p>Live onchain capabilities with a plain boundary, a visible price, and a trace you can keep.</p>
         </div>
         <div className="directory-summary"><i aria-hidden="true" /><strong>{agents.filter((agent) => agent.status === "online").length} live agents</strong><span>on BNB testnet</span></div>
       </section>
       <section className="market-directory" id="agent-list" aria-labelledby="directory-title">
         <div className="directory-toolbar">
-          <div><h2 id="directory-title">Marketplace listings</h2><p>{filtered.length} result{filtered.length === 1 ? "" : "s"} matching your view</p></div>
+          <div><h2 id="directory-title">Live capabilities</h2><p>{filtered.length} result{filtered.length === 1 ? "" : "s"} matching your view</p></div>
           <label className="market-sort" htmlFor="agent-sort"><span>Sort by</span><select id="agent-sort" name="sort" value={sort} onChange={(event) => { const next = event.target.value as Sort; setSort(next); updateUrl({ sort: next }); }}><option value="relevance">Recommended</option><option value="rating">Highest rated</option><option value="usage">Most used</option><option value="price">Lowest price</option></select></label>
         </div>
         <div className="directory-controls">
