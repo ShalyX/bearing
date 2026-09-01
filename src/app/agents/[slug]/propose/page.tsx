@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WorkspaceNav } from "@/components/WorkspaceNav";
 import { readPosition, verifyBnbRpc } from "@/lib/integration-status";
 
 export const dynamic = "force-dynamic";
@@ -10,5 +11,18 @@ export default async function ProposalPage({ searchParams }: { searchParams?: Pr
   const valid = /^0x[0-9a-fA-F]{40}$/.test(owner) && /^\d+$/.test(tokenId);
   const [chain, position] = valid ? await Promise.all([verifyBnbRpc(), readPosition(tokenId)]) : [null, null];
   const live = chain?.reason === "rpc_verified" && position?.ok;
-  return <main className="workspace-page"><nav className="workspace-nav"><Link href="/" className="workspace-brand">BRG <i /></Link><span>Proposal / non-executable</span><span>BNB / MAINNET</span></nav><div className="workspace-body"><Link href={`/agents/pancake-position-keeper/qualify?owner=${owner}&tokenId=${tokenId}`} className="workspace-back">← Return to qualification</Link><header className="workspace-header"><p className="workspace-kicker">Bounded proposal</p><h1>Stop before<br />execution.</h1><p className="workspace-lede">The selected position is now a candidate for agent analysis. Bearing records the live input boundary, but does not invent a rebalance or open a transaction path.</p></header><section className="proposal-state"><span className="qualification-dot" /><div><strong>{live ? "Input boundary verified" : "Input boundary incomplete"}</strong><p>{live ? `Position data was read at BNB block ${chain.latestBlock}. A strategy proposal requires explicit policy inputs before any action can be described.` : "Live position data is not available, so no proposal can be formed."}</p></div></section><dl className="qualification-facts"><div><dt>Wallet</dt><dd>{valid ? `${owner.slice(0, 10)}…${owner.slice(-8)}` : "Invalid or missing"}</dd></div><div><dt>Token</dt><dd>{valid ? tokenId : "Invalid or missing"}</dd></div><div><dt>Fee tier</dt><dd>{position?.ok ? `${position.fee} hundredths` : "Not available"}</dd></div><div><dt>Range</dt><dd>{position?.ok ? `${position.tickLower} to ${position.tickUpper}` : "Not available"}</dd></div></dl><p className="workspace-empty">No transaction was prepared. No approval, signature, payment, or custody action is available from this screen.</p>{valid ? <form className="workspace-link-form" action="/api/jobs" method="post"><input type="hidden" name="agentSlug" value="pancake-position-keeper" /><input type="hidden" name="ownerAddress" value={owner} /><input type="hidden" name="tokenId" value={tokenId} /><button className="workspace-link" type="submit">Create test-run record ↗</button></form> : null}</div></main>;
+
+  return (
+    <main className="market-shell workspace-page">
+      <WorkspaceNav section="Proposal / non-executable" network="BNB mainnet" />
+      <div className="workspace-body">
+        <Link href={`/agents/pancake-position-keeper/qualify?owner=${owner}&tokenId=${tokenId}`} className="workspace-back">← Return to qualification</Link>
+        <header className="workspace-header"><p className="workspace-kicker">Bounded proposal</p><h1>Stop before<br />execution.</h1><p className="workspace-lede">The selected position is now a candidate for agent analysis. Bearing records the live input boundary, but does not invent a rebalance or open a transaction path.</p></header>
+        <section className="proposal-state"><span className="qualification-dot" /><div><strong>{live ? "Input boundary verified" : "Input boundary incomplete"}</strong><p>{live ? `Position data was read at BNB block ${chain.latestBlock}. A strategy proposal requires explicit policy inputs before any action can be described.` : "Live position data is not available, so no proposal can be formed."}</p></div></section>
+        <dl className="qualification-facts"><div><dt>Wallet</dt><dd>{valid ? `${owner.slice(0, 10)}…${owner.slice(-8)}` : "Invalid or missing"}</dd></div><div><dt>Token</dt><dd>{valid ? tokenId : "Invalid or missing"}</dd></div><div><dt>Fee tier</dt><dd>{position?.ok ? `${position.fee} hundredths` : "Not available"}</dd></div><div><dt>Range</dt><dd>{position?.ok ? `${position.tickLower} to ${position.tickUpper}` : "Not available"}</dd></div></dl>
+        <p className="workspace-empty">No transaction was prepared. No approval, signature, payment, or custody action is available from this screen.</p>
+        {valid ? <form className="workspace-link-form" action="/api/jobs" method="post"><input type="hidden" name="agentSlug" value="pancake-position-keeper" /><input type="hidden" name="ownerAddress" value={owner} /><input type="hidden" name="tokenId" value={tokenId} /><button className="workspace-link" type="submit">Create test-run record ↗</button></form> : null}
+      </div>
+    </main>
+  );
 }

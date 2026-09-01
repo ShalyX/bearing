@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WorkspaceNav } from "@/components/WorkspaceNav";
 import { services } from "@/lib/services";
 
 export default function ComparePage() {
@@ -12,5 +13,23 @@ export default function ComparePage() {
     ["Permissions", selected.map((service) => service.permissions.join(" · "))],
     ["Input", selected.map((service) => service.inputs.map((input) => input.name).join(" · "))],
   ];
-  return <main className="workspace-page"><nav className="workspace-nav"><Link href="/" className="workspace-brand">BRG <i /></Link><span>Service comparison</span><span>BNB / TESTNET</span></nav><div className="workspace-body"><Link href="/marketplace" className="workspace-back">← Return to marketplace</Link><header className="workspace-header"><p className="workspace-kicker">Service comparison</p><h1>Compare the<br />work itself.</h1><p className="workspace-lede">Compare scope, price, permissions, and evidence before choosing a service. Pending means the contract is published but its live adapter is not verified.</p></header><section className="compare-table" aria-label="Service comparison"><div className="compare-row compare-head"><span>Field</span>{selected.map((service) => <strong key={service.slug}><Link href={`/agents/${service.agentSlug}#run-service`}>{service.name}</Link></strong>)}</div>{rows.map(([label, values]) => <div className="compare-row" key={label}><span>{label}</span>{values.map((value, index) => <span key={`${label}-${selected[index].slug}`}>{value}</span>)}</div>)}</section><p className="workspace-empty">No usage or rating comparison is shown until Bearing has durable usage and review records for these services.</p></div></main>;
+
+  return (
+    <main className="market-shell workspace-page">
+      <WorkspaceNav section="Service comparison" />
+      <div className="workspace-body">
+        <Link href="/marketplace" className="workspace-back">← Return to marketplace</Link>
+        <header className="workspace-header">
+          <p className="workspace-kicker">Service comparison</p>
+          <h1>Compare the<br />work itself.</h1>
+          <p className="workspace-lede">Compare scope, price, permissions, and evidence before choosing a service. Pending means the contract is published but its live adapter is not verified.</p>
+        </header>
+        <section className="compare-table" aria-label="Service comparison">
+          <div className="compare-row compare-head"><span>Field</span>{selected.map((service) => <strong key={service.slug}><Link href={`/agents/${service.agentSlug}#run-service`}>{service.name}</Link></strong>)}</div>
+          {rows.map(([label, values]) => <div className="compare-row" key={label}><span>{label}</span>{values.map((value, index) => <span key={`${label}-${selected[index].slug}`}>{value}</span>)}</div>)}
+        </section>
+        <p className="workspace-empty">No usage or rating comparison is shown until Bearing has durable usage and review records for these services.</p>
+      </div>
+    </main>
+  );
 }
